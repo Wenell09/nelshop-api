@@ -6,25 +6,25 @@ function welcome(req, res) {
         status: "success",
         message: "Welcome to Nelshop API",
         informasi: {
-            list_semua_barang: "api/barang",
-            detail_barang: "api/barang/{barang_id}",
-            tambah_barang: "api/addBarang",
-            cari_barang: "api/searchBarang?q={query}",
-            list_kategori: "api/kategori",
-            list_kategori_merk: "api/kategoriMerk",
-            tambah_keranjang: "api/addShoppingCart",
-            lihat_keranjang: "api/shoppingCart/{user_id}",
-            update_keranjang: "api/updateShoppingCart/{user_id}/{keranjang_id}",
-            hapus_keranjang: "api/deleteShoppingCart/{user_id}/{keranjang_id}",
-            tambah_favorite: "api/addFavoriteUser",
-            lihat_favorite: "api/favoriteUser/{user_id}",
-            hapus_favorite: "api/deletefavoriteUser/{user_id}/{barang_id}",
-            buat_alamat: "api/addAlamat",
-            lihat_alamat: "api/alamat/{user_id}",
-            hapus_alamat: "api/deleteAlamat/{user_id}/{alamat_id}",
-            update_alamat_utama: "api/updateAlamatUtama/{user_id}{alamat_id}",
-            buat_akun: "api/addAccount",
-            detail_akun: "api/account/{user_id}"
+            list_semua_barang: "/barang",
+            detail_barang: "/barang/{barang_id}",
+            tambah_barang: "/addBarang",
+            cari_barang: "/searchBarang?q={query}",
+            list_kategori: "/kategori",
+            list_kategori_merk: "/kategoriMerk",
+            tambah_keranjang: "/addShoppingCart",
+            lihat_keranjang: "/shoppingCart/{user_id}",
+            update_keranjang: "/updateShoppingCart/{user_id}/{keranjang_id}",
+            hapus_keranjang: "/deleteShoppingCart/{user_id}/{keranjang_id}",
+            tambah_favorite: "/addFavoriteUser",
+            lihat_favorite: "/favoriteUser/{user_id}",
+            hapus_favorite: "/deletefavoriteUser/{user_id}/{barang_id}",
+            buat_alamat: "/addAlamat",
+            lihat_alamat: "/alamat/{user_id}",
+            hapus_alamat: "/deleteAlamat/{user_id}/{alamat_id}",
+            update_alamat_utama: "/updateAlamatUtama/{user_id}{alamat_id}",
+            buat_akun: "/addAccount",
+            detail_akun: "/account/{user_id}"
         },
     });
 }
@@ -216,8 +216,8 @@ function getKategoriMerk(req, res) {
 }
 
 function addShoppingCart(req, res) {
-    const { user_id, barang_id, nama_barang, kategori, gambar, berat, harga, quantity, total_harga } = req.body;
     const keranjang_id = uuidv4();
+    const { user_id, barang_id, quantity, total_harga } = req.body;
     if (!keranjang_id) {
         return res.status(404).json({
             status: "fail",
@@ -246,36 +246,6 @@ function addShoppingCart(req, res) {
         return res.status(404).json({
             status: "fail",
             message: "total harga kosong,silahkan perbaiki!"
-        });
-    }
-    if (!nama_barang) {
-        return res.status(404).json({
-            status: "fail",
-            message: "nama barang kosong,silahkan perbaiki!"
-        });
-    }
-    if (!harga) {
-        return res.status(404).json({
-            status: "fail",
-            message: "harga kosong,silahkan perbaiki!"
-        });
-    }
-    if (!berat) {
-        return res.status(404).json({
-            status: "fail",
-            message: "berat kosong,silahkan perbaiki!"
-        });
-    }
-    if (!gambar) {
-        return res.status(404).json({
-            status: "fail",
-            message: "gambar kosong,silahkan perbaiki!"
-        });
-    }
-    if (!kategori) {
-        return res.status(404).json({
-            status: "fail",
-            message: "kategori kosong,silahkan perbaiki!"
         });
     }
     mysqlConnection.query("SELECT * FROM keranjang WHERE user_id = ? AND barang_id = ?", [user_id, barang_id], (err, results) => {
@@ -307,8 +277,8 @@ function addShoppingCart(req, res) {
                 });
         } else {
             // Jika barang belum ada, tambahkan barang baru ke keranjang
-            mysqlConnection.query("INSERT INTO keranjang (keranjang_id,user_id,barang_id, nama_barang,kategori,gambar,berat,harga,quantity,total_harga) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)",
-                [keranjang_id, user_id, barang_id, nama_barang, kategori, gambar, berat, harga, quantity, total_harga],
+            mysqlConnection.query("INSERT INTO keranjang (keranjang_id,user_id,barang_id,quantity,total_harga) VALUES (?, ?, ?, ?, ?)",
+                [keranjang_id, user_id, barang_id, quantity, total_harga],
                 (err, results) => {
                     if (err) {
                         return res.status(404).json({
@@ -327,7 +297,7 @@ function addShoppingCart(req, res) {
 
 function getShoppingCart(req, res) {
     const { user_id } = req.params;
-    mysqlConnection.query("SELECT * FROM keranjang WHERE user_id=?", [user_id], (err, results) => {
+    mysqlConnection.query("SELECT keranjang.*,barang.nama_barang,barang.gambar,barang.harga,barang.berat,kategori.kategori from keranjang JOIN barang ON keranjang.barang_id=barang.barang_id JOIN kategori ON barang.kategori_id=kategori.kategori_id WHERE keranjang.user_id=?", [user_id], (err, results) => {
         if (err) {
             return res.status(404).json({
                 status: "fail",
@@ -347,7 +317,7 @@ function getShoppingCart(req, res) {
                     message: "gagal menghitung total bayar"
                 });
             }
-            mysqlConnection.query("SELECT SUM(berat) AS total_berat FROM keranjang WHERE user_id=?", [user_id], (err, beratResult) => {
+            mysqlConnection.query("SELECT SUM(barang.berat) AS total_berat FROM keranjang JOIN barang ON keranjang.barang_id=barang.barang_id WHERE keranjang.user_id=?", [user_id], (err, beratResult) => {
                 if (err) {
                     return res.status(404).json({
                         status: "fail",
@@ -436,7 +406,7 @@ function deleteShoppingCart(req, res) {
 
 function addFavoriteUser(req, res) {
     const favorite_user_id = uuidv4();
-    const { user_id, barang_id, nama_barang, harga, gambar, kategori } = req.body;
+    const { user_id, barang_id } = req.body;
     if (!favorite_user_id) {
         return res.status(404).json({
             status: "fail",
@@ -455,30 +425,6 @@ function addFavoriteUser(req, res) {
             message: "barang id kosong, silahkan perbaiki!"
         });
     }
-    if (!nama_barang) {
-        return res.status(404).json({
-            status: "fail",
-            message: "nama barang kosong,silahkan perbaiki!"
-        });
-    }
-    if (!harga) {
-        return res.status(404).json({
-            status: "fail",
-            message: "harga kosong,silahkan perbaiki!"
-        });
-    }
-    if (!gambar) {
-        return res.status(404).json({
-            status: "fail",
-            message: "gambar kosong,silahkan perbaiki!"
-        });
-    }
-    if (!kategori) {
-        return res.status(404).json({
-            status: "fail",
-            message: "kategori kosong,silahkan perbaiki!"
-        });
-    }
     mysqlConnection.query("SELECT * FROM favorite_user WHERE user_id = ? AND barang_id = ?", [user_id, barang_id], (err, results) => {
         if (err) {
             return res.status(404).json({
@@ -493,8 +439,8 @@ function addFavoriteUser(req, res) {
             });
         }
         // Jika barang belum ada di favorit tambahkan data
-        mysqlConnection.query("INSERT INTO favorite_user (favorite_user_id, user_id, barang_id, nama_barang, harga, gambar, kategori) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [favorite_user_id, user_id, barang_id, nama_barang, harga, gambar, kategori], (err, results) => {
+        mysqlConnection.query("INSERT INTO favorite_user (favorite_user_id, user_id, barang_id, ) VALUES (?, ?, ?)",
+            [favorite_user_id, user_id, barang_id], (err, results) => {
                 if (err) {
                     return res.status(404).json({
                         status: "fail",
@@ -511,7 +457,7 @@ function addFavoriteUser(req, res) {
 
 function getFavoriteUser(req, res) {
     const { user_id } = req.params;
-    mysqlConnection.query("SELECT * FROM favorite_user WHERE user_id=?", [user_id], (err, results) => {
+    mysqlConnection.query("SELECT favorite_user.*,barang.nama_barang,barang.harga,barang.gambar,kategori.kategori FROM favorite_user JOIN barang ON favorite_user.barang_id = barang.barang_id JOIN kategori ON barang.kategori_id = kategori.kategori_id WHERE favorite_user.user_id = ? ", [user_id], (err, results) => {
         if (err) {
             return res.status(404).json({
                 status: "fail",
